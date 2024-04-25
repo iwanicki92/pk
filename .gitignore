@@ -1,3 +1,7 @@
+.vscode
+.vscode-ctags
+sha3
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
