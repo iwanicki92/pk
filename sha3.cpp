@@ -1,55 +1,11 @@
 #include <iostream>
-#include <array>
-#include <cstdint>
+#include <sstream>
 #include <format>
 #include <bit>
-#include <vector>
 #include <stdexcept>
+#include <chrono>
 
-int32_t mod(int32_t a, int32_t b) {
-    return (a % b + b) % b;
-}
-
-template <class T, size_t SIZE>
-std::ostream& operator<<(std::ostream& out, const std::array<T,SIZE>& row) {
-    out << "[\t";
-    for (const auto& item : row)
-    {
-        out << (long long int)item << "\t";
-    }
-    out << "]\n";
-    return out;
-}
-
-template <class T, size_t ROW_SIZE, size_t COL_SIZE>
-std::ostream& operator<<(std::ostream& out, const std::array<std::array<T,COL_SIZE>, ROW_SIZE>& array) {
-    out << "[\n";
-    for (const auto& row : array)
-    {
-        out << " " << row;
-    }
-    out << "]" << "\n";
-    return out;
-}
-
-template <class T>
-std::ostream& operator<<(std::ostream& out, const std::vector<T>& vector) {
-    out << "[\t";
-    for (const auto& item : vector)
-    {
-        out << (long long int)item << "\t";
-    }
-    out << "]\n";
-    return out;
-}
-
-template <class T>
-void log(std::string str, const T& object, bool print = true) {
-    if (!print)
-        return;
-    std::cout << str << "\n";
-    std::cout << std::hex << object;
-}
+#include "utils.h"
 
 template <size_t MessageBlockLength = 20, uint16_t ArraySize = 5>
 class Keccak {
@@ -58,8 +14,8 @@ public:
     using Row = std::array<Type, ArraySize>;
     using State = std::array<Row, ArraySize>;
     using Hash = std::array<uint8_t, 16>;
-    using Message = std::vector<uint8_t>;
-    using MessageBlock = std::array<uint8_t, MessageBlockLength>;
+    using Message = std::vector<char>;
+    using MessageBlock = std::array<char, MessageBlockLength>;
 
 protected:
     State a{};
@@ -202,29 +158,32 @@ public:
 
     Message findMessageFromHash(Hash hash, uint8_t message_length)
     {
-        // std::array possible_characters{
-        //     'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', 'a', 's',
-        //     'd', 'f', 'g', 'h', 'j', 'k', 'l', 'z', 'x', 'c', 'v', 'b',
-        //     'n', 'm', 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P',
-        //     'A', 'S', 'D', 'F', 'G', 'H', 'J', 'L', 'Z', 'X', 'C', 'V',
-        //     'B', 'N', 'M', '1', '2', '3', '4', '5', '6', '7', '8', '9',
-        //     '0', '!', '@', '#', '%', '^', '-', '_', '=', '+', '(',
-        //     '[', '{', '<', ')', ']', '}', '>' };
+        std::array possible_characters{
+            'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', 'a', 's',
+            'd', 'f', 'g', 'h', 'j', 'k', 'l', 'z', 'x', 'c', 'v', 'b',
+            'n', 'm', 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P',
+            'A', 'S', 'D', 'F', 'G', 'H', 'J', 'L', 'Z', 'X', 'C', 'V',
+            'B', 'N', 'M', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+            '0', '!', '@', '#', '%', '^', '-', '_', '=', '+', '(',
+            '[', '{', '<', ')', ']', '}', '>', ' '};
 
-        for (int i = 0; i < 256; ++i) {
-            unsigned char character = static_cast<unsigned char>(i);
-            auto message = Message{character};
+        auto perm = PermutationWithRepetition(possible_characters, message_length);
+
+        std::cout << "Searching for message of length " << std::dec << (int)message_length << " with hash:\n";
+        std::cout << std::hex << hash;
+        std::cout << "Number of possible permutations: " << std::dec << perm.getNumberOfPermutations() << "\n";
+        std::cout << "Progress:";
+        for (uint64_t i = 0; i < perm.getNumberOfPermutations(); ++i) {
+            if (i % (perm.getNumberOfPermutations() / 100) == 0) {
+                auto percent = std::string(" ") + std::to_string((int)((float)i / perm.getNumberOfPermutations() * 100)) + "%";
+                std::cout << percent << std::string(percent.length(), '\b') << std::flush;
+            }
+            auto message = perm.nextPermutation();
             auto message_hash = digest(message);
-            std::cout << "character = " << std::hex << i << "\n" << message_hash << "\n";
-            if (message_hash[0] == hash[0]) {
-                //std::cout << "char: " << character << ", hash: \n" << std::hex << message_hash;
-            }
             if (message_hash == hash)
-            {
-                std::cout << std::hex << message;
                 return message;
-            }
         }
+
         return Message();
     }
 };
@@ -237,12 +196,28 @@ Keccak<>::Message createMessage(std::string str) {
     return msg;
 }
 
+/// convert hash in string format to Hash class
+Keccak<>::Hash strToHash(std::string hash) {
+    std::istringstream ss(hash);
+    std::string byte;
+    Keccak<>::Hash converted_hash;
+    int i = 0;
+    while (ss >> byte) {
+        if (byte.length() > 2) {
+            throw std::runtime_error(std::format("Couldn't parse {}! Each hash byte should have at most 2 hex characters", byte));
+        }
+        converted_hash[i] = std::stoul(byte, nullptr, 16);
+        ++i;
+    }
+    return converted_hash;
+}
+
 void printDigest(std::string str) {
-    log(str, Keccak<>().digest(createMessage(str)));
+    log(str, Keccak().digest(createMessage(str)));
 }
 
 bool test(std::string str, Keccak<>::Hash hash, bool log = false) {
-    if (Keccak<>(log).digest(createMessage(str)) != hash) {
+    if (Keccak(log).digest(createMessage(str)) != hash) {
         std::cout << str.substr(0, 50) << " hash is wrong!\n";
         return false;
     }
@@ -250,7 +225,7 @@ bool test(std::string str, Keccak<>::Hash hash, bool log = false) {
 }
 
 bool testKeccak() {
-    auto keccak = Keccak<>();
+    auto keccak = Keccak();
     using Hash = Keccak<>::Hash;
     auto str_repeat = [](unsigned char character, size_t repeat) {
         std::string a_str;
@@ -273,8 +248,57 @@ bool testKeccak() {
     return tests_ok;
 }
 
-int main() {
+void findMessages() {
+    using Hash = Keccak<>::Hash;
+    auto keccak = Keccak();
+    std::array hashes = {
+        Hash{0x50,0xF9,0x10,0x74,0xB8,0x57,0xFB,0x7E,0x64,0x8F,0x7C,0xC4,0x31,0xDC,0x5F,0x8A},
+        Hash{0x0E,0x39,0xA2,0x16,0xC8,0x34,0xA0,0x1F,0x6C,0x7D,0x69,0x90,0xEE,0xAA,0xE4,0xBE},
+        Hash{0xF1,0x6B,0x29,0x69,0xFB,0xDE,0xB8,0xED,0x36,0xD8,0x50,0x67,0xEC,0xB9,0xB9,0x9F},
+        Hash{0xF6,0x62,0x77,0x1A,0x39,0x4C,0x3E,0x63,0xA1,0x05,0xF8,0x87,0x78,0xBD,0xA0,0x5F},
+        Hash{0x98,0xC3,0xCA,0x3D,0x8B,0x43,0x99,0x5C,0xE1,0xA2,0x07,0xEF,0xCA,0xE5,0x88,0x1E},
+        Hash{0xC2,0x70,0x1C,0x6A,0x6A,0x6C,0x18,0x0F,0x23,0x69,0x36,0x28,0x9C,0xDB,0x6A,0x73},
+        Hash{0x33,0xFE,0x44,0x57,0xC9,0xFD,0xB4,0xF6,0x2B,0x80,0xA7,0x76,0xBC,0xEA,0x4C,0xE8}
+    };
+
+    for (int i = 0; i < 4; ++i) {
+        auto begin = std::chrono::steady_clock::now();
+        auto message = keccak.findMessageFromHash(hashes[i], i + 2);
+        auto end = std::chrono::steady_clock::now();
+
+        std::cout << "\nElapsed time: " << std::chrono::duration<float>(end - begin) << ". ";
+
+        if (message.empty())
+            std::cout << "Couldn't find message of length " << i << "\n";
+        else {
+            std::string msg;
+            for (auto character : message) {
+                msg.push_back(character);
+            }
+
+            std::cout << "Message of length " << i + 2 << " is: " << msg << "\n\n";
+        }
+    }
+}
+
+int main(int argc, char** argv) {
     /* Liczba znaków + jeden w teście!*/
     if (!testKeccak())
         return -1;
+
+    auto keccak = Keccak();
+
+    if (argc == 3) {
+        size_t message_length = std::stoul(argv[1]);
+        auto hash = strToHash(argv[2]);
+        std::cout << "Message: " << keccak.findMessageFromHash(hash, message_length) << "\n";
+    }
+    else if (argc == 1) {
+        findMessages();
+    }
+    else {
+        std::cout << "args: " << argc << "\n";
+        std::cout << "Usage: ./sha3 [ {message length} {message hash} ]\n";
+        std::cout << "\tmessage hash - Hash separated by spaces e.g. \"e1 12 ff c ...\"\n";
+    }
 }
