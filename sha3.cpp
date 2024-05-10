@@ -24,13 +24,7 @@ private:
     uint8_t round = 0;
     bool logging = false;
 
-    void nextRound(bool print_steps = false)
-    {
-        if (round >= r.size()) {
-            throw std::runtime_error("Too many rounds!");
-        }
-        log("Base", a, print_steps);
-
+    void step1() {
         // Step θ
         Row c{};
         Row d{};
@@ -53,8 +47,10 @@ private:
                 a[i][j] ^= d[i];
             }
         }
-        log("After θ", a, print_steps);
+        log("After θ", a, false);
+    }
 
+    void step2() {
         // step ρ
         for (auto i = 0; i < ArraySize; ++i)
         {
@@ -63,8 +59,10 @@ private:
                 a[i][j] = std::rotl<uint16_t>(a[i][j], (7*i + j) % 16);
             }
         }
-        log("After ρ", a, print_steps);
+        log("After ρ", a, false);
+    }
 
+    auto step3() {
         // step π
         State b{};
 
@@ -75,9 +73,11 @@ private:
                 b[(3*i + 2*j) % ArraySize][i] = a[i][j];
             }
         }
+        log("After π", a, false);
+        return b;
+    }
 
-        log("After π", a, print_steps);
-
+    void step4(const State &b) {
         // step χ
         for (auto i = 0; i < ArraySize; ++i)
         {
@@ -86,13 +86,28 @@ private:
                 a[i][j] = b[i][j] ^ (~b[(i+1) % ArraySize][j] & b[(i+2) % ArraySize][j]);
             }
         }
+        log("After χ", b, false);
+    }
 
-        log("After χ", b, print_steps);
-
+    void step5() {
         // step ι
         a[0][0] ^= r[round++];
 
-        log("After ι", a, print_steps);
+        log("After ι", a, false);
+    }
+
+    void nextRound(bool print_steps = false)
+    {
+        if (round >= r.size()) {
+            throw std::runtime_error("Too many rounds!");
+        }
+        log("Base", a, false);
+
+        step1();
+        step2();
+        auto b = step3();
+        step4(b);
+        step5();
     }
 
     auto base_function() {
@@ -225,7 +240,6 @@ bool test(std::string str, Keccak<>::Hash hash, bool log = false) {
 }
 
 bool testKeccak() {
-    auto keccak = Keccak();
     using Hash = Keccak<>::Hash;
     auto str_repeat = [](unsigned char character, size_t repeat) {
         std::string a_str;
@@ -261,7 +275,7 @@ void findMessages() {
         Hash{0x33,0xFE,0x44,0x57,0xC9,0xFD,0xB4,0xF6,0x2B,0x80,0xA7,0x76,0xBC,0xEA,0x4C,0xE8}
     };
 
-    for (int i = 0; i < 4; ++i) {
+    for (int i = 0; i < 3; ++i) {
         auto begin = std::chrono::steady_clock::now();
         auto message = keccak.findMessageFromHash(hashes[i], i + 2);
         auto end = std::chrono::steady_clock::now();

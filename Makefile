@@ -12,12 +12,15 @@ endif
 sha3: sha3.cpp utils.h
 	${CC} ${CC_FLAGS} sha3.cpp -o $@
 
+rebuild:
+	${CC} ${CC_FLAGS} sha3.cpp -o sha3
+
 all: sha3
 
 clean:
 	rm sha3
 
-.PHONY: run
+.PHONY: run rebuild
 
 run: sha3
 	./sha3 ${RUN_ARGS}
