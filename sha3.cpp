@@ -295,6 +295,18 @@ void findMessages() {
     }
 }
 
+void printHelp() {
+    std::cout << "Usage:\n";
+    std::cout << "1. ./sha3\n";
+    std::cout << "2. ./sha3 message\n";
+    std::cout << "3. ./sha3 message_length message_hash\n";
+    std::cout << "4. ./sha3 (-h|--help)\n\n";
+    std::cout << "1. Find messages from built in hashes.\n";
+    std::cout << "2. Calculate hash of <message>.\n";
+    std::cout << "3. Find message of length <message_length> from <message_hash>.\n";
+    std::cout << "4. Print this help.\n";
+}
+
 int main(int argc, char** argv) {
     /* Liczba znaków + jeden w teście!*/
     if (!testKeccak())
@@ -307,12 +319,20 @@ int main(int argc, char** argv) {
         auto hash = strToHash(argv[2]);
         std::cout << "Message: " << keccak.findMessageFromHash(hash, message_length) << "\n";
     }
+    else if (argc == 2) {
+        std::string message(argv[1]);
+        if (message.find("-h") != std::string::npos || message.find("--help") != std::string::npos) {
+            printHelp();
+            return 0;
+        }
+        std::cout << "'" << message << "' hash:\n" << std::hex
+            << keccak.digest(std::vector(message.begin(), message.end()));
+    }
     else if (argc == 1) {
         findMessages();
     }
     else {
-        std::cout << "args: " << argc << "\n";
-        std::cout << "Usage: ./sha3 [ {message length} {message hash} ]\n";
-        std::cout << "\tmessage hash - Hash separated by spaces e.g. \"e1 12 ff c ...\"\n";
+        std::cout << "Wrong number of arguments!\n";
+        printHelp();
     }
 }
