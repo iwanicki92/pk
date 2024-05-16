@@ -4,12 +4,15 @@
 #include <bit>
 #include <stdexcept>
 #include <chrono>
+#include <cmath>
 
 #include "utils.h"
 
-template <size_t MessageBlockLength = 20, uint16_t ArraySize = 5>
 class Keccak {
 public:
+    static constexpr int ArraySize = 5;
+    static constexpr int MessageBlockLength = 20;
+
     using Type = uint16_t;
     using Row = std::array<Type, ArraySize>;
     using State = std::array<Row, ArraySize>;
@@ -47,7 +50,6 @@ private:
                 a[i][j] ^= d[i];
             }
         }
-        log("After θ", a, false);
     }
 
     void step2() {
@@ -59,10 +61,9 @@ private:
                 a[i][j] = std::rotl<uint16_t>(a[i][j], (7*i + j) % 16);
             }
         }
-        log("After ρ", a, false);
     }
 
-    auto step3() {
+    State step3() {
         // step π
         State b{};
 
@@ -73,7 +74,6 @@ private:
                 b[(3*i + 2*j) % ArraySize][i] = a[i][j];
             }
         }
-        log("After π", a, false);
         return b;
     }
 
@@ -86,26 +86,18 @@ private:
                 a[i][j] = b[i][j] ^ (~b[(i+1) % ArraySize][j] & b[(i+2) % ArraySize][j]);
             }
         }
-        log("After χ", b, false);
     }
 
     void step5() {
         // step ι
         a[0][0] ^= r[round++];
-
-        log("After ι", a, false);
     }
 
-    void nextRound(bool print_steps = false)
+    void nextRound()
     {
-        if (round >= r.size()) {
-            throw std::runtime_error("Too many rounds!");
-        }
-        log("Base", a, false);
-
         step1();
         step2();
-        auto b = step3();
+        State b = step3();
         step4(b);
         step5();
     }
@@ -113,10 +105,8 @@ private:
     auto base_function() {
         while (round < r.size())
         {
-            //log("Round " + std::to_string(round + 1), "", logging);
             nextRound();
         }
-        log("Array a after 10 rounds", a, logging);
 
         Hash hash;
         for (auto i = 0; i < 5; ++i)
@@ -136,21 +126,16 @@ private:
     }
 
 public:
-    Keccak(std::vector<Type> r, bool log) : r(r), logging(log) {}
-    Keccak(bool log) : Keccak({0x3EC2, 0x738D, 0xB119, 0xC5E7, 0x86C6, 0xDC1B, 0x57D6, 0xDA3A, 0x7710, 0x9200}, log) {}
-    Keccak() : Keccak(false) {}
+    Keccak(std::vector<Type> r) : r(r) {}
+    Keccak() : Keccak({0x3EC2, 0x738D, 0xB119, 0xC5E7, 0x86C6, 0xDC1B, 0x57D6, 0xDA3A, 0x7710, 0x9200}) {}
 
     auto digest(Message message)
     {
-        log("message", message, logging);
         padding(message);
-        log("padded", message, logging);
         a = State{};
         Hash hash;
-        int iter_num = 1;
         for (auto iter = message.begin(); iter < message.end(); iter += MessageBlockLength)
         {
-            log("Iteration " + std::to_string(iter_num++), Message(iter, iter + MessageBlockLength), logging);
             round = 0;
             auto message_block = Message(iter, iter + MessageBlockLength);
             for (auto i = 0; i < 5; ++i)
@@ -159,52 +144,54 @@ public:
                 a[1][i] ^= (message_block[2*(i+5)] << 8) | message_block[2*(i+5)+1];
             }
             hash = base_function();
-            log("Hash", hash, logging);
         }
         round = 0;
         auto hash2 = base_function();
-        log("Hash2", hash2, logging);
         for (int i = 10; i < 16; ++i)
         {
             hash[i] = hash2[i-10];
         }
         return hash;
     }
-
-    Message findMessageFromHash(Hash hash, uint8_t message_length)
-    {
-        std::array possible_characters{
-            'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', 'a', 's',
-            'd', 'f', 'g', 'h', 'j', 'k', 'l', 'z', 'x', 'c', 'v', 'b',
-            'n', 'm', 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P',
-            'A', 'S', 'D', 'F', 'G', 'H', 'J', 'L', 'Z', 'X', 'C', 'V',
-            'B', 'N', 'M', '1', '2', '3', '4', '5', '6', '7', '8', '9',
-            '0', '!', '@', '#', '%', '^', '-', '_', '=', '+', '(',
-            '[', '{', '<', ')', ']', '}', '>', ' '};
-
-        auto perm = PermutationWithRepetition(possible_characters, message_length);
-
-        std::cout << "Searching for message of length " << std::dec << (int)message_length << " with hash:\n";
-        std::cout << std::hex << hash;
-        std::cout << "Number of possible permutations: " << std::dec << perm.getNumberOfPermutations() << "\n";
-        std::cout << "Progress:";
-        for (uint64_t i = 0; i < perm.getNumberOfPermutations(); ++i) {
-            if (i % (perm.getNumberOfPermutations() / 100) == 0) {
-                auto percent = std::string(" ") + std::to_string((int)((float)i / perm.getNumberOfPermutations() * 100)) + "%";
-                std::cout << percent << std::string(percent.length(), '\b') << std::flush;
-            }
-            auto message = perm.nextPermutation();
-            auto message_hash = digest(message);
-            if (message_hash == hash)
-                return message;
-        }
-
-        return Message();
-    }
 };
 
-Keccak<>::Message createMessage(std::string str) {
-    Keccak<>::Message msg;
+Keccak::Message findMessageFromHash(Keccak::Hash hash, uint8_t message_length)
+{
+    static constexpr std::array possible_characters{
+        'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', 'a', 's',
+        'd', 'f', 'g', 'h', 'j', 'k', 'l', 'z', 'x', 'c', 'v', 'b',
+        'n', 'm', 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P',
+        'A', 'S', 'D', 'F', 'G', 'H', 'J', 'L', 'Z', 'X', 'C', 'V',
+        'B', 'N', 'M', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+        '0', '!', '@', '#', '%', '^', '-', '_', '=', '+', '(',
+        '[', '{', '<', ')', ']', '}', '>', ' '};
+
+    auto perm = PermutationWithRepetition(possible_characters, message_length);
+    Keccak keccak = Keccak();
+
+    std::cout << "Searching for message of length " << std::dec << (int)message_length << " with hash:\n";
+    std::cout << std::hex << hash;
+    std::cout << "Number of possible permutations: " << std::dec << perm.getNumberOfPermutations() << "\n";
+    std::cout << "Progress:";
+    auto percent = perm.getNumberOfPermutations() / 100;
+
+    for (uint64_t i = 0; i < perm.getNumberOfPermutations(); ++i) {
+        if ((i % percent) == 0) {
+            auto percent_str = std::string(" ") + std::to_string((int)((float)i / percent)) + "%";
+            std::cout << percent_str << std::string(percent_str.length(), '\b') << std::flush;
+        }
+        auto message = perm.nextPermutation();
+        auto message_hash = keccak.digest(message);
+        if (message_hash == hash)
+            return message;
+    }
+
+    std::cout << "\n" << std::flush;
+    return Keccak::Message();
+}
+
+Keccak::Message createMessage(std::string str) {
+    Keccak::Message msg;
     for (char character : str) {
         msg.push_back(character);
     }
@@ -212,10 +199,10 @@ Keccak<>::Message createMessage(std::string str) {
 }
 
 /// convert hash in string format to Hash class
-Keccak<>::Hash strToHash(std::string hash) {
+Keccak::Hash strToHash(std::string hash) {
     std::istringstream ss(hash);
     std::string byte;
-    Keccak<>::Hash converted_hash;
+    Keccak::Hash converted_hash;
     int i = 0;
     while (ss >> byte) {
         if (byte.length() > 2) {
@@ -231,8 +218,8 @@ void printDigest(std::string str) {
     log(str, Keccak().digest(createMessage(str)));
 }
 
-bool test(std::string str, Keccak<>::Hash hash, bool log = false) {
-    if (Keccak(log).digest(createMessage(str)) != hash) {
+bool test(std::string str, Keccak::Hash hash) {
+    if (Keccak().digest(createMessage(str)) != hash) {
         std::cout << str.substr(0, 50) << " hash is wrong!\n";
         return false;
     }
@@ -240,7 +227,7 @@ bool test(std::string str, Keccak<>::Hash hash, bool log = false) {
 }
 
 bool testKeccak() {
-    using Hash = Keccak<>::Hash;
+    using Hash = Keccak::Hash;
     auto str_repeat = [](unsigned char character, size_t repeat) {
         std::string a_str;
         for (size_t i = 0; i < repeat; ++i) {
@@ -263,7 +250,7 @@ bool testKeccak() {
 }
 
 void findMessages() {
-    using Hash = Keccak<>::Hash;
+    using Hash = Keccak::Hash;
     auto keccak = Keccak();
     std::array hashes = {
         Hash{0x50,0xF9,0x10,0x74,0xB8,0x57,0xFB,0x7E,0x64,0x8F,0x7C,0xC4,0x31,0xDC,0x5F,0x8A},
@@ -277,7 +264,7 @@ void findMessages() {
 
     for (int i = 0; i < 3; ++i) {
         auto begin = std::chrono::steady_clock::now();
-        auto message = keccak.findMessageFromHash(hashes[i], i + 2);
+        auto message = findMessageFromHash(hashes[i], i + 2);
         auto end = std::chrono::steady_clock::now();
 
         std::cout << "\nElapsed time: " << std::chrono::duration<float>(end - begin) << ". ";
@@ -301,7 +288,7 @@ void printHelp() {
     std::cout << "2. ./sha3 message\n";
     std::cout << "3. ./sha3 message_length message_hash\n";
     std::cout << "4. ./sha3 (-h|--help)\n\n";
-    std::cout << "1. Find messages from built in hashes.\n";
+    std::cout << "1. Find messages from built-in hashes.\n";
     std::cout << "2. Calculate hash of <message>.\n";
     std::cout << "3. Find message of length <message_length> from <message_hash>.\n";
     std::cout << "4. Print this help.\n";
@@ -317,11 +304,11 @@ int main(int argc, char** argv) {
     if (argc == 3) {
         size_t message_length = std::stoul(argv[1]);
         auto hash = strToHash(argv[2]);
-        std::cout << "Message: " << keccak.findMessageFromHash(hash, message_length) << "\n";
+        std::cout << "Message: " << findMessageFromHash(hash, message_length) << "\n";
     }
     else if (argc == 2) {
         std::string message(argv[1]);
-        if (message.find("-h") != std::string::npos || message.find("--help") != std::string::npos) {
+        if (message.starts_with("-h") || message.starts_with("--help")) {
             printHelp();
             return 0;
         }

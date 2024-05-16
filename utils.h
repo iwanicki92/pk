@@ -84,7 +84,7 @@ public:
         return permutation;
     }
 
-    bool isEnd() const {
+    bool getEnd() const {
         return end;
     }
 
