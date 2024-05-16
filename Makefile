@@ -1,5 +1,5 @@
 CC=g++
-CC_FLAGS=-std=c++20 -Wall -O3
+CC_FLAGS=-std=c++20 -Wall -O3 -fopenmp
 
 # If the first argument is "run"...
 ifeq (run,$(firstword $(MAKECMDGOALS)))

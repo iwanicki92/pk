@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <chrono>
 #include <cmath>
+#include <omp.h>
 
 #include "utils.h"
 
@@ -173,21 +174,44 @@ Keccak::Message findMessageFromHash(Keccak::Hash hash, uint8_t message_length)
     std::cout << std::hex << hash;
     std::cout << "Number of possible permutations: " << std::dec << perm.getNumberOfPermutations() << "\n";
     std::cout << "Progress:";
-    auto percent = perm.getNumberOfPermutations() / 100;
+    auto no_permutations = perm.getNumberOfPermutations();
+    auto perm_per_percent = static_cast<uint64_t>(no_permutations / 100);
+    int percent = 0;
+    Keccak::Message found_message;
 
-    for (uint64_t i = 0; i < perm.getNumberOfPermutations(); ++i) {
-        if ((i % percent) == 0) {
-            auto percent_str = std::string(" ") + std::to_string((int)((float)i / percent)) + "%";
-            std::cout << percent_str << std::string(percent_str.length(), '\b') << std::flush;
+    #pragma omp parallel default(none) shared(perm,found_message,hash,percent,std::cout) \
+            private(keccak) firstprivate(perm_per_percent,no_permutations)
+    #pragma omp for
+    for (uint64_t i = 0; i < no_permutations; ++i) {
+        // Display progress percentage.
+        if ((i % perm_per_percent) == 0) {
+            int current_percent;
+            #pragma omp atomic read
+            current_percent = percent;
+            auto percent_str = std::string(" ") + std::to_string(current_percent) + "%";
+            percent_str += std::string(percent_str.length(), '\b');
+            #pragma omp critical
+            {
+                #pragma omp atomic update
+                ++percent;
+                std::cout << percent_str << std::flush;
+            }
         }
-        auto message = perm.nextPermutation();
+
+        Keccak::Message message;
+        // TODO: remove this critical section, for more than a couple threads it makes
+        // this loop slower than a single thread version.
+        #pragma omp critical
+        message = perm.nextPermutation();
         auto message_hash = keccak.digest(message);
-        if (message_hash == hash)
-            return message;
+        if (message_hash == hash) {
+            found_message = std::move(message);
+            #pragma omp cancel for
+        }
     }
 
     std::cout << "\n" << std::flush;
-    return Keccak::Message();
+    return found_message;
 }
 
 Keccak::Message createMessage(std::string str) {
