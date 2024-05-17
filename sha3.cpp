@@ -22,9 +22,14 @@ public:
 protected:
     State a{};
     std::vector<Type> r;
-private:
     uint8_t round = 0;
 
+public:
+    Keccak(std::vector<Type> r) : r(r) {}
+    Keccak() : Keccak({0x3EC2, 0x738D, 0xB119, 0xC5E7, 0x86C6, 0xDC1B, 0x57D6, 0xDA3A, 0x7710, 0x9200}) {}
+
+    auto digest(Message message);
+protected:
     void step1() {
         // Step θ
         Row c{};
@@ -122,36 +127,32 @@ private:
             message.push_back(padding_size);
         }
     }
-
-public:
-    Keccak(std::vector<Type> r) : r(r) {}
-    Keccak() : Keccak({0x3EC2, 0x738D, 0xB119, 0xC5E7, 0x86C6, 0xDC1B, 0x57D6, 0xDA3A, 0x7710, 0x9200}) {}
-
-    auto digest(Message message)
-    {
-        padding(message);
-        a = State{};
-        Hash hash;
-        for (auto iter = message.begin(); iter < message.end(); iter += MessageBlockLength)
-        {
-            round = 0;
-            auto message_block = Message(iter, iter + MessageBlockLength);
-            for (auto i = 0; i < 5; ++i)
-            {
-                a[0][i] ^= (message_block[2*i] << 8) | message_block[2*i+1];
-                a[1][i] ^= (message_block[2*(i+5)] << 8) | message_block[2*(i+5)+1];
-            }
-            hash = base_function();
-        }
-        round = 0;
-        auto hash2 = base_function();
-        for (int i = 10; i < 16; ++i)
-        {
-            hash[i] = hash2[i-10];
-        }
-        return hash;
-    }
 };
+
+auto Keccak::digest(Message message)
+{
+    padding(message);
+    a = State{};
+    Hash hash;
+    for (auto iter = message.begin(); iter < message.end(); iter += MessageBlockLength)
+    {
+        round = 0;
+        auto message_block = Message(iter, iter + MessageBlockLength);
+        for (auto i = 0; i < 5; ++i)
+        {
+            a[0][i] ^= (message_block[2*i] << 8) | message_block[2*i+1];
+            a[1][i] ^= (message_block[2*(i+5)] << 8) | message_block[2*(i+5)+1];
+        }
+        hash = base_function();
+    }
+    round = 0;
+    auto hash2 = base_function();
+    for (int i = 10; i < 16; ++i)
+    {
+        hash[i] = hash2[i-10];
+    }
+    return hash;
+}
 
 Keccak::Message findMessageFromHash(Keccak::Hash hash, uint8_t message_length)
 {
