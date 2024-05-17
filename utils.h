@@ -6,6 +6,8 @@
 #include <array>
 #include <string>
 
+using Hash = std::array<uint8_t, 16>;
+
 template <class T1, class T2>
 T2 mod(T1 a, T2 b) {
     return (a % b + b) % b;
@@ -44,22 +46,28 @@ std::ostream& operator<<(std::ostream& out, const std::vector<T>& vector) {
     return out;
 }
 
-template <class T, size_t SET_SIZE>
+constexpr uint64_t power(uint64_t Base, uint64_t Exponent) {
+    uint64_t pow = Base;
+    for (size_t i = 1; i < Exponent; ++i) {
+        pow *= Base;
+    }
+    return pow;
+}
+
+template <class T, size_t SET_SIZE, uint8_t CHOICES>
 class PermutationWithRepetition {
 public:
-    PermutationWithRepetition(const std::array<T, SET_SIZE> &set, size_t choices) : set(set), choices(choices) {
-        number_of_permutations = SET_SIZE;
-        for (size_t i = 1; i < choices; ++i) {
-            number_of_permutations *= SET_SIZE;
-        }
-    }
+    constexpr PermutationWithRepetition(const std::array<T, SET_SIZE> &set) : set(set), number_of_permutations(power(SET_SIZE, CHOICES)) {}
 
-    std::vector<T> getPermutation(uint64_t index) {
+    /// @brief Get n-th permutation
+    /// @param index which permutation to return
+    /// @param permutation array that is at least of size <CHOICES>
+    /// @return same array as in argument
+    std::array<T, CHOICES> getPermutation(uint64_t index) {
         index = index % number_of_permutations;
-        std::vector<T> permutation;
-        permutation.reserve(choices);
-        for (size_t i = 0; i < choices; ++i) {
-            permutation.push_back(set[index % SET_SIZE]);
+        std::array<T, CHOICES> permutation;
+        for (size_t i = 0; i < CHOICES; ++i) {
+            permutation[i] = set[index % SET_SIZE];
             index /= SET_SIZE;
         }
         return permutation;
@@ -70,7 +78,7 @@ public:
     }
 
     size_t getK() const {
-        return choices;
+        return CHOICES;
     }
 
     uint64_t getNumberOfPermutations() const {
@@ -79,6 +87,5 @@ public:
 
 private:
     const std::array<T, SET_SIZE> set;
-    size_t choices;
     uint64_t number_of_permutations;
 };

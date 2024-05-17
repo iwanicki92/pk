@@ -1,5 +1,5 @@
 CC=g++
-CC_FLAGS=-std=c++20 -Wall -O3 -fopenmp
+CC_FLAGS=-std=c++20 -Wall -O3 -fopenmp -march=native
 
 # If the first argument is "run"...
 ifeq (run,$(firstword $(MAKECMDGOALS)))
@@ -9,7 +9,7 @@ ifeq (run,$(firstword $(MAKECMDGOALS)))
   $(eval $(RUN_ARGS):;@:)
 endif
 
-sha3: sha3.cpp utils.h
+sha3: sha3.cpp sha3.h utils.h
 	${CC} ${CC_FLAGS} sha3.cpp -o $@
 
 rebuild:
