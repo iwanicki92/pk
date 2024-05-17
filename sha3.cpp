@@ -322,7 +322,8 @@ int main(int argc, char** argv) {
     if (argc == 3) {
         size_t message_length = std::stoul(argv[1]);
         auto hash = strToHash(argv[2]);
-        std::cout << "Message: " << findMessageFromHash(hash, message_length) << "\n";
+        auto message = findMessageFromHash(hash, message_length);
+        std::cout << "Found message: " << std::string(message.begin(), message.end()) << "\n";
     }
     else if (argc == 2) {
         std::string message(argv[1]);
