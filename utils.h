@@ -44,14 +44,6 @@ std::ostream& operator<<(std::ostream& out, const std::vector<T>& vector) {
     return out;
 }
 
-template <class T>
-void log(std::string str, const T& object, bool print = true) {
-    if (!print)
-        return;
-    std::cout << str << "\n";
-    std::cout << std::hex << object;
-}
-
 template <class T, size_t SET_SIZE>
 class PermutationWithRepetition {
 public:

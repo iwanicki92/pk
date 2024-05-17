@@ -2,9 +2,7 @@
 #include <sstream>
 #include <format>
 #include <bit>
-#include <stdexcept>
 #include <chrono>
-#include <cmath>
 #include <omp.h>
 
 #include "utils.h"
@@ -26,7 +24,6 @@ protected:
     std::vector<Type> r;
 private:
     uint8_t round = 0;
-    bool logging = false;
 
     void step1() {
         // Step θ
@@ -238,10 +235,6 @@ Keccak::Hash strToHash(std::string hash) {
     return converted_hash;
 }
 
-void printDigest(std::string str) {
-    log(str, Keccak().digest(createMessage(str)));
-}
-
 bool test(std::string str, Keccak::Hash hash) {
     if (Keccak().digest(createMessage(str)) != hash) {
         std::cout << str.substr(0, 50) << " hash is wrong!\n";
@@ -250,6 +243,8 @@ bool test(std::string str, Keccak::Hash hash) {
     return true;
 }
 
+/// @brief Test if Keccak class calculates correct hashes.
+/// @return true if tests passed else false
 bool testKeccak() {
     using Hash = Keccak::Hash;
     auto str_repeat = [](unsigned char character, size_t repeat) {
@@ -319,7 +314,6 @@ void printHelp() {
 }
 
 int main(int argc, char** argv) {
-    /* Liczba znaków + jeden w teście!*/
     if (!testKeccak())
         return -1;
 
