@@ -47,45 +47,30 @@ std::ostream& operator<<(std::ostream& out, const std::vector<T>& vector) {
 template <class T, size_t SET_SIZE>
 class PermutationWithRepetition {
 public:
-    PermutationWithRepetition(const std::array<T, SET_SIZE> &set, size_t elements) : set(set), elements(elements) {
+    PermutationWithRepetition(const std::array<T, SET_SIZE> &set, size_t choices) : set(set), choices(choices) {
         number_of_permutations = SET_SIZE;
-        for (size_t i = 1; i < elements; ++i) {
+        for (size_t i = 1; i < choices; ++i) {
             number_of_permutations *= SET_SIZE;
         }
     }
 
-    std::vector<T> nextPermutation() {
+    std::vector<T> getPermutation(uint64_t index) {
+        index = index % number_of_permutations;
         std::vector<T> permutation;
-        permutation.reserve(elements);
-
-        for (auto index : permutation_indices) {
-            permutation.push_back(set[index]);
-        }
-        ++permutation_indices[0];
-        end = true;
-        for (size_t i = 0; i < elements; ++i) {
-            if (permutation_indices[i] < SET_SIZE) {
-                end = false;
-                break;
-            } else {
-                permutation_indices[i] = 0;
-                if (i < elements - 1)
-                    ++permutation_indices[i+1];
-            }
+        permutation.reserve(choices);
+        for (size_t i = 0; i < choices; ++i) {
+            permutation.push_back(set[index % SET_SIZE]);
+            index /= SET_SIZE;
         }
         return permutation;
     }
 
-    bool getEnd() const {
-        return end;
-    }
-
-        size_t getN() const {
+    size_t getN() const {
         return SET_SIZE;
     }
 
     size_t getK() const {
-        return elements;
+        return choices;
     }
 
     uint64_t getNumberOfPermutations() const {
@@ -94,8 +79,6 @@ public:
 
 private:
     const std::array<T, SET_SIZE> set;
-    size_t elements;
+    size_t choices;
     uint64_t number_of_permutations;
-    std::vector<size_t> permutation_indices = std::vector<size_t>(elements);
-    bool end = false;
 };

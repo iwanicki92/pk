@@ -175,11 +175,18 @@ Keccak::Message findMessageFromHash(Keccak::Hash hash, uint8_t message_length)
     auto perm_per_percent = static_cast<uint64_t>(no_permutations / 100);
     int percent = 0;
     Keccak::Message found_message;
+    bool stop = false;
 
-    #pragma omp parallel default(none) shared(perm,found_message,hash,percent,std::cout) \
-            private(keccak) firstprivate(perm_per_percent,no_permutations)
+    #pragma omp parallel default(none) shared(found_message,hash,percent,std::cout,stop) \
+            private(keccak) firstprivate(perm_per_percent,no_permutations,perm)
     #pragma omp for
     for (uint64_t i = 0; i < no_permutations; ++i) {
+        bool priv_stop;
+        #pragma omp atomic read
+        priv_stop = stop;
+        if (priv_stop) {
+            continue;
+        }
         // Display progress percentage.
         if ((i % perm_per_percent) == 0) {
             int current_percent;
@@ -196,14 +203,12 @@ Keccak::Message findMessageFromHash(Keccak::Hash hash, uint8_t message_length)
         }
 
         Keccak::Message message;
-        // TODO: remove this critical section, for more than a couple threads it makes
-        // this loop slower than a single thread version.
-        #pragma omp critical
-        message = perm.nextPermutation();
+        message = perm.getPermutation(i);
         auto message_hash = keccak.digest(message);
         if (message_hash == hash) {
+            #pragma omp atomic write
+            stop = true;
             found_message = std::move(message);
-            #pragma omp cancel for
         }
     }
 
@@ -281,7 +286,7 @@ void findMessages() {
         Hash{0x33,0xFE,0x44,0x57,0xC9,0xFD,0xB4,0xF6,0x2B,0x80,0xA7,0x76,0xBC,0xEA,0x4C,0xE8}
     };
 
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 5; ++i) {
         auto begin = std::chrono::steady_clock::now();
         auto message = findMessageFromHash(hashes[i], i + 2);
         auto end = std::chrono::steady_clock::now();
