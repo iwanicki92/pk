@@ -1,0 +1,91 @@
+Fixed Array, 28 threads:
+Searching for message of length 2 with hash:
+[       50      f9      10      74      b8      57      fb      7e      64      8f      7c      c4      31      dc      5f      8a      ]
+Number of possible permutations: 6241
+Progress: 2%
+
+Elapsed time: 0.00797506s. Message of length 2 is: v#
+
+Searching for message of length 3 with hash:
+[       e       39      a2      16      c8      34      a0      1f      6c      7d      69      90      ee      aa      e4      be      ]
+Number of possible permutations: 493039
+Progress: 83%
+
+Elapsed time: 0.0159879s. Message of length 3 is: XXy
+
+Searching for message of length 4 with hash:
+[       f1      6b      29      69      fb      de      b8      ed      36      d8      50      67      ec      b9      b9      9f      ]
+Number of possible permutations: 38950081
+Progress: 71%
+
+Elapsed time: 0.354994s. Message of length 4 is: -ZH{
+
+Searching for message of length 5 with hash:
+[       f6      62      77      1a      39      4c      3e      63      a1      5       f8      87      78      bd      a0      5f      ]
+Number of possible permutations: 3077056399
+Progress: 0%
+
+Elapsed time: 1.07803s. Message of length 5 is: NTT@_
+
+Searching for message of length 6 with hash:
+[       98      c3      ca      3d      8b      43      99      5c      e1      a2      7       ef      ca      e5      88      1e      ]
+Number of possible permutations: 243087455521
+Progress: 28%
+
+Elapsed time: 896.386s. Message of length 6 is: 24MoIb
+
+
+fixed 1 thread
+
+Searching for message of length 2 with hash:
+[       50      f9      10      74      b8      57      fb      7e      64      8f      7c      c4      31      dc      5f      8a      ]
+Number of possible permutations: 6241
+Progress: 80%
+
+Elapsed time: 0.00138691s. Message of length 2 is: v#
+
+Searching for message of length 3 with hash:
+[       e       39      a2      16      c8      34      a0      1f      6c      7d      69      90      ee      aa      e4      be      ]
+Number of possible permutations: 493039
+Progress: 7%
+
+Elapsed time: 0.00724833s. Message of length 3 is: XXy
+
+Searching for message of length 4 with hash:
+[       f1      6b      29      69      fb      de      b8      ed      36      d8      50      67      ec      b9      b9      9f      ]
+Number of possible permutations: 38950081
+Progress: 91%
+
+Elapsed time: 5.98391s. Message of length 4 is: -ZH{
+
+
+-----
+General 28 threads
+
+Searching for message of length 2 with hash:
+[       50      f9      10      74      b8      57      fb      7e      64      8f      7c      c4      31      dc      5f      8a      ]
+Number of possible permutations: 6241
+Progress: 69%
+
+Elapsed time: 0.00115933s. Message of length 2 is: v#
+
+Searching for message of length 3 with hash:
+[       e       39      a2      16      c8      34      a0      1f      6c      7d      69      90      ee      aa      e4      be      ]
+Number of possible permutations: 493039
+Progress: 89%
+
+Elapsed time: 0.00802515s. Message of length 3 is: XXy
+
+Searching for message of length 4 with hash:
+[       f1      6b      29      69      fb      de      b8      ed      36      d8      50      67      ec      b9      b9      9f      ]
+Number of possible permutations: 38950081
+Progress: 60%
+
+Elapsed time: 0.43315s. Message of length 4 is: -ZH{
+
+Searching for message of length 5 with hash:
+[       f6      62      77      1a      39      4c      3e      63      a1      5       f8      87      78      bd      a0      5f      ]
+Number of possible permutations: 3077056399
+Progress: 0%
+
+Elapsed time: 1.61696s. Message of length 5 is: NTT@_
