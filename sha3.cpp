@@ -135,6 +135,7 @@ Keccak<MessageLength>::Message findMessageFromHash(Hash hash)
             percent_str += std::string(percent_str.length(), '\b');
             #pragma omp critical
             {
+                #pragma omp atomic write
                 ++percent;
                 std::cout << percent_str << std::flush;
             }
