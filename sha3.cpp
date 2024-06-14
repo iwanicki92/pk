@@ -31,6 +31,17 @@ int main(int argc, char** argv) {
     if (argc == 1) {
         findMessages<2>(hashes);
     }
+    else if (argc == 2) {
+        std::string message(argv[1]);
+        if (message.starts_with("-h") || message.starts_with("--help")) {
+            printHelp();
+            return 0;
+        }
+        else {
+            std::cout << "Unknown argument!\n";
+            printHelp();
+        }
+    }
     else {
         std::cout << "Wrong number of arguments!\n";
         printHelp();
@@ -83,14 +94,15 @@ template <uint8_t MessageLength>
 Keccak<MessageLength>::Message findMessageFromHash(Hash hash)
 {
     using Message = Keccak<MessageLength>::Message;
-    static constexpr std::array<uint8_t, 79> possible_characters{
+    static constexpr std::array<uint8_t, 79> possible_characters {
         'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', 'a', 's',
         'd', 'f', 'g', 'h', 'j', 'k', 'l', 'z', 'x', 'c', 'v', 'b',
         'n', 'm', 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P',
         'A', 'S', 'D', 'F', 'G', 'H', 'J', 'L', 'Z', 'X', 'C', 'V',
         'B', 'N', 'M', '1', '2', '3', '4', '5', '6', '7', '8', '9',
-        '0', '!', '@', '#', '%', '^', '-', '_', '=', '+', '(',
-        '[', '{', '<', ')', ']', '}', '>', ' '};
+        '0', '!', '@', '#', '%', '^', '-', '_', '=', '+', '(', '[',
+        '{', '<', ')', ']', '}', '>', ' '
+    };
 
     PermutationWithRepetition<uint8_t, possible_characters.size(), MessageLength> perm(possible_characters);
     Keccak keccak = Keccak<MessageLength>();
@@ -123,7 +135,6 @@ Keccak<MessageLength>::Message findMessageFromHash(Hash hash)
             percent_str += std::string(percent_str.length(), '\b');
             #pragma omp critical
             {
-                #pragma omp atomic update
                 ++percent;
                 std::cout << percent_str << std::flush;
             }
@@ -146,6 +157,10 @@ Keccak<MessageLength>::Message findMessageFromHash(Hash hash)
 template <uint8_t MessageLength>
 void findMessage(Hash hash)
 {
+    if (MessageLength == 0 && Keccak<0>().digest(std::array<uint8_t, 0>{}) != hash) {
+        std::cout << "Couldn't find message of length 0\n";
+        return;
+    }
     auto begin = std::chrono::steady_clock::now();
     auto message = findMessageFromHash<MessageLength>(hash);
     auto end = std::chrono::steady_clock::now();
@@ -160,7 +175,7 @@ void findMessage(Hash hash)
             msg.push_back(character);
         }
 
-        std::cout << "Message of length " << static_cast<int>(MessageLength) << " is: " << msg << "\n\n";
+        std::cout << "Message of length " << static_cast<int>(MessageLength) << " is:§" << msg << "§\n\n";
     }
 }
 
@@ -190,7 +205,7 @@ template <uint8_t MessageLength>
 Keccak<MessageLength>::Keccak() : Keccak({0x3EC2, 0x738D, 0xB119, 0xC5E7, 0x86C6, 0xDC1B, 0x57D6, 0xDA3A, 0x7710, 0x9200}) {}
 
 template <uint8_t MessageLength>
-Hash Keccak<MessageLength>::digest(Message message)
+Hash Keccak<MessageLength>::digest(const Message &message)
 {
     auto padded_message = padding(message);
     a = State{};

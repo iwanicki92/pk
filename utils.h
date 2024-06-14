@@ -61,8 +61,7 @@ public:
 
     /// @brief Get n-th permutation
     /// @param index which permutation to return
-    /// @param permutation array that is at least of size <CHOICES>
-    /// @return same array as in argument
+    /// @return std::array with n-th permutation
     std::array<T, CHOICES> getPermutation(uint64_t index) {
         index = index % number_of_permutations;
         std::array<T, CHOICES> permutation;

@@ -28,7 +28,7 @@ public:
     /// @brief Calculate hash
     /// @param message Message to calculate hash for
     /// @return Hash of message
-    Hash digest(Message message);
+    Hash digest(const Message &message);
 protected:
     /// @brief Step θ
     inline void step1();
